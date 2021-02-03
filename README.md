@@ -6,8 +6,6 @@ Aleksandra (Sasha) Bliznina, PhD Student at Genomics and Regulatory Systems Unit
 
 2021 February 8, 10, 15, & 17; 3-5PM
 
-Find materials from the previous sessions here (taught by Maggi Mars Brisbin): https://github.com/oist/rnaSkillPill
-
 Sessions:
 
 * Feb 8: Introduction to RNA-Seq, data quality check, data quality filtering, transcriptome assembly
@@ -31,3 +29,5 @@ Softwares used:
 * HTSeq v0.13.5
 * R Studio
 * DESeq2
+
+Find materials from the previous sessions here (taught by Maggi Mars Brisbin): https://github.com/oist/rnaSkillPill
