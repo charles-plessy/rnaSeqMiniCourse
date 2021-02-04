@@ -29,9 +29,17 @@ https://www.ncbi.nlm.nih.gov/pubmed/27022035
 
 #### Data Quality Screening
 
-First, we need to get some data to work with.
+During this course, we will work with yeast data from: https://academic.oup.com/g3journal/article/7/1/221/6031506?login=true
 
-We will be working on Deigo, so login with ssh:
+They used RNA-Seq to to monitor mRNA levels of all genes in response to hypoxia of wild-type yeast, *Saccharomyces cerevisiae* (strain yMH914 with wildtype HAP1). To gain insights into how gene expression changes over time, cells were subjected to 100% nitrogen gas and collected after 0,5,10,30,60,120,180, and 240 minutes. Basically, they had 8 time points with 3 replicates per each point (24 samples in total).
+
+Data is available here: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE85595
+
+We won't take all the samples, only two time points: 0 and 120 minutes.
+
+To start with, we need to download the data to the cluster. Deigo.
+
+We will be working on Deigo. So login with ssh:
 ```
 ssh aleksandrabliznina@deigo.oist.jp
 ```
@@ -62,20 +70,20 @@ move into the directory for data:
 cd data
 ```
 
-Download yeast RNA-seq data from the open science framework ([link to the data](https://osf.io/64mq2/)):
+Download yeast RNA-seq data from the open science framework ([link to the data](https://www.ebi.ac.uk/ena/browser/view/PRJNA338913):
 
-	curl -L https://osf.io/5daup/download -o ERR458493.fastq.gz
-    curl -L https://osf.io/8rvh5/download -o ERR458494.fastq.gz
-    curl -L https://osf.io/2wvn3/download -o ERR458495.fastq.gz
-    curl -L https://osf.io/xju4a/download -o ERR458500.fastq.gz
-    curl -L https://osf.io/nmqe6/download -o ERR458501.fastq.gz
-    curl -L https://osf.io/qfsze/download -o ERR458502.fastq.gz
+	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/007/SRR4031247/SRR4031247.fastq.gz -o SRR01.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/009/SRR5336649/SRR5336649.fastq.gz -o SRR02.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/007/SRR5336657/SRR5336657.fastq.gz -o SRR03.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/002/SRR4031252/SRR4031252.fastq.gz -o SRR1201.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/004/SRR5336654/SRR5336654.fastq.gz -o SRR1202.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/002/SRR5336662/SRR5336662.fastq.gz -o SRR1203.fastq.gz
 
 These commands download gzipped fastq files and rename them.
 
 look at the zipped file:
 ```
-gzip -cd ERR458493.fastq.gz | head -12
+gzip -cd SRR01.fastq.gz | head -12
 ```
 
 ##### Check sequencing data quality (FastQC/MultiQC)
@@ -134,7 +142,7 @@ nano fastqc.slurm
 
 	ml load fastqc
 
-	fastqc ERR*.fastq.gz -t 6
+	fastqc SRR*.fastq.gz -t 6
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -154,7 +162,7 @@ check what files we have in teh current directory:
 ls -l
 ```
 
-After this job finishes running, there will be `fastqc.zip` and `fastqc.html` files in your data directory.
+That will take ~2 minutes. After this job finishes running, there will be `fastqc.zip` and `fastqc.html` files in your data directory.
 
 Secure copy one report to your local computer so that we can look at a report:    
 open another terminal tab or window and `cd` to the directory you would like to move the fastqc to on your local computer. Then copy the report to your current working directory:
