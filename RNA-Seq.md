@@ -72,9 +72,9 @@ cd data
 
 Download yeast RNA-seq data from the open science framework ([link to the data](https://www.ebi.ac.uk/ena/browser/view/PRJNA338913):
 
-	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/007/SRR4031247/SRR4031247.fastq.gz -o SRR01.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/009/SRR5336649/SRR5336649.fastq.gz -o SRR02.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/007/SRR5336657/SRR5336657.fastq.gz -o SRR03.fastq.gz
+	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/007/SRR4031247/SRR4031247.fastq.gz -o SRR1.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/009/SRR5336649/SRR5336649.fastq.gz -o SRR2.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/007/SRR5336657/SRR5336657.fastq.gz -o SRR3.fastq.gz
     curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/002/SRR4031252/SRR4031252.fastq.gz -o SRR1201.fastq.gz
     curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/004/SRR5336654/SRR5336654.fastq.gz -o SRR1202.fastq.gz
     curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/002/SRR5336662/SRR5336662.fastq.gz -o SRR1203.fastq.gz
@@ -168,12 +168,12 @@ Secure copy one report to your local computer so that we can look at a report:
 open another terminal tab or window and `cd` to the directory you would like to move the fastqc to on your local computer. Then copy the report to your current working directory:
 
 ```
-scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/data/ERR458493_fastqc.html .
+scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/data/SRR1_fastqc.html . .
 ```
 
 and to open the report:
 ```
-open ERR458493_fastqc.html
+open SRR1_fastqc.html
 ```
 
 Next, lets bundle up all of our fastqc reports into a single report with **MultiQC**:
@@ -196,10 +196,10 @@ nano multiqc.slurm
 	#SBATCH --output=multiqc_%j.out
 	#SBATCH --error=multiqc_%j.err
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
-	ml load MultiQC
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
 
-	multiqc ERR*
+	multiqc SRR*
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -266,13 +266,13 @@ nano trimmomatic.slurm
 	#SBATCH --input=none
 	#SBATCH --output=trimmomatic_%j.out
 	#SBATCH --error=trimmomatic_%j.err
-	#SBATCH --array 493,494,495,500,501,502
+	#SBATCH --array 1,2,3,1201,1202,1203
 
 	DIR=/apps/free81/Trimmomatic/0.33/lib
 	DATA=~/RNAseq/data
 
-	java -jar $DIR/trimmomatic-0.33.jar SE $DATA/ERR458${SLURM_ARRAY_TASK_ID}.fastq.gz \
-	ERR458${SLURM_ARRAY_TASK_ID}.qc.fastq.gz \
+	java -jar $DIR/trimmomatic-0.33.jar SE $DATA/SRR${SLURM_ARRAY_TASK_ID}.fastq.gz \
+	SRR${SLURM_ARRAY_TASK_ID}.qc.fastq.gz \
     ILLUMINACLIP:TruSeq2-SE.fa:2:0:15 \
     LEADING:2 TRAILING:2 \
     SLIDINGWINDOW:4:2 \
@@ -284,9 +284,9 @@ press *control + x* --> exit
 *example if running paired-end data*
 
 	java -jar $DIR/trimmomatic-0.33.jar PE \
-	$DATA/ERR458${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/ERR458${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
-	ERR458${SLURM_ARRAY_TASK_ID}_R1.qc.fastq.gz ERR458${SLURM_ARRAY_TASK_ID}_R1.up.qc.fastq.gz \
-	ERR458${SLURM_ARRAY_TASK_ID}_R2.qc.fastq.gz ERR458${SLURM_ARRAY_TASK_ID}_R2.up.qc.fastq.gz \
+	$DATA/SRR8${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
+	SRR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R1.up.qc.fastq.gz \
+	SRR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R2.up.qc.fastq.gz \
     ILLUMINACLIP:TruSeq2-SE.fa:2:0:15 \
     LEADING:2 TRAILING:2 \
     SLIDINGWINDOW:4:2 \
@@ -297,7 +297,7 @@ to run the slurm file:
 sbatch trimmomatic.slurm
 ```
 
-As output, we will get new files for each sample, such as `ERR458493.qc.fastq.gz`, and in the log files for each sample we can see how many of our sequences were discarded.
+As output, we will get new files for each sample, such as `SRR1.qc.fastq.gz`, and in the log files for each sample we can see how many of our sequences were discarded.
 
 Lets see if our quality reports have changed at all: 
 ```
@@ -321,8 +321,8 @@ nano quality.slurm
 	ml load fastqc
 	ml load MultiQC
 
-	fastqc ERR*.qc.fastq.gz -t 6
-	multiqc ERR*
+	fastqc SRR*.qc.fastq.gz -t 6
+	multiqc SRR*
 
 press *control + o* --> save    
 press *control + x* --> exit
