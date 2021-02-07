@@ -708,8 +708,8 @@ nano htseq.slurm
 	#SBATCH --error=htseq_%j.err
 	#SBATCH --array 1,2,3,1201,1202,1203
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
-	ml load HTSeq
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
 
 	GENOME_DIR=~/RNAseq/genome
 	STAR_DIR=~/RNAseq/star_results
