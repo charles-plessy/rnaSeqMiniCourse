@@ -6,7 +6,7 @@
 
 Github: https://github.com/aleksandrabliznina/rnaSeqMiniCourse
 
-Stickies: Green = "everything is fine", Red = "I need some help"
+Stickies: Green = "everything is fine", Pink = "I need some help"
 
 ### Overview
 
