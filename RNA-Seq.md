@@ -70,7 +70,7 @@ move into the directory for data:
 cd data
 ```
 
-Download yeast RNA-seq data from the open science framework ([link to the data](https://www.ebi.ac.uk/ena/browser/view/PRJNA338913):
+Download yeast RNA-seq data from the open science framework ([link to the data])(https://www.ebi.ac.uk/ena/browser/view/PRJNA338913):
 
 	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/007/SRR4031247/SRR4031247.fastq.gz -o SRR1.fastq.gz
     curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/009/SRR5336649/SRR5336649.fastq.gz -o SRR2.fastq.gz
@@ -83,7 +83,7 @@ These commands download gzipped fastq files and rename them.
 
 look at the zipped file:
 ```
-gzip -cd SRR01.fastq.gz | head -12
+gzip -cd SRR1.fastq.gz | head -12
 ```
 
 ##### Check sequencing data quality (FastQC/MultiQC)
@@ -196,8 +196,8 @@ nano multiqc.slurm
 	#SBATCH --output=multiqc_%j.out
 	#SBATCH --error=multiqc_%j.err
 
-	module use /apps/unit/GradschoolD/.modulefiles
-	module load RNA-seq/2.0
+	ml use /apps/unit/GradschoolD/.modulefiles
+	ml load RNA-seq/2.0
 
 	multiqc SRR*
 
@@ -246,7 +246,7 @@ cd data_trimmed
 
 we will need to get the adapter file:
 ```
-wget https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq2-SE.fa
+wget https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-SE.fa
 ```
 
 make a slurm file to quality trim the data with Trimmomatic: 
@@ -261,8 +261,8 @@ nano trimmomatic.slurm
 	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
-	#SBATCH --mem=10G
-	#SBATCH -c 6
+	#SBATCH --mem=20G
+	#SBATCH -c 12
 	#SBATCH --input=none
 	#SBATCH --output=trimmomatic_%j.out
 	#SBATCH --error=trimmomatic_%j.err
@@ -273,9 +273,10 @@ nano trimmomatic.slurm
 
 	java -jar $DIR/trimmomatic-0.33.jar SE $DATA/SRR${SLURM_ARRAY_TASK_ID}.fastq.gz \
 	SRR${SLURM_ARRAY_TASK_ID}.qc.fastq.gz \
-    ILLUMINACLIP:TruSeq2-SE.fa:2:0:15 \
-    LEADING:2 TRAILING:2 \
-    SLIDINGWINDOW:4:2 \
+    ILLUMINACLIP:TruSeq2-SE.fa:2:30:10 \
+    LEADING:3 TRAILING:2 \
+    SLIDINGWINDOW:4:10 \
+    HEADCROP:11 \
     MINLEN:25
 
 press *control + o* --> save    
@@ -284,12 +285,13 @@ press *control + x* --> exit
 *example if running paired-end data*
 
 	java -jar $DIR/trimmomatic-0.33.jar PE \
-	$DATA/SRR8${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
+	$DATA/SRR${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
 	SRR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R1.up.qc.fastq.gz \
 	SRR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R2.up.qc.fastq.gz \
-    ILLUMINACLIP:TruSeq2-SE.fa:2:0:15 \
-    LEADING:2 TRAILING:2 \
-    SLIDINGWINDOW:4:2 \
+    ILLUMINACLIP:TruSeq3-SE.fa:2:30:10 \
+    LEADING:3 TRAILING:3 \
+    SLIDINGWINDOW:4:15 \
+    HEADCROP:11 \
     MINLEN:25
 
 to run the slurm file: 
@@ -317,9 +319,9 @@ nano quality.slurm
 	#SBATCH --output=qc_%j.out
 	#SBATCH --error=qc_%j.err
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
+	ml use /apps/unit/GradschoolD/.modulefiles
+	ml load RNA-seq/2.0
 	ml load fastqc
-	ml load MultiQC
 
 	fastqc SRR*.qc.fastq.gz -t 6
 	multiqc SRR*
@@ -393,15 +395,15 @@ nano trinity.slurm
 	#SBATCH --output=trinity_%j.out
 	#SBATCH --error=trinity_%j.err
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
-	ml load Trinity
-	ml load samtools
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
+	module load samtools
 
 	DATA=~/RNAseq/data_trimmed
 	DIR=~/RNAseq/trinity_results
 
 	Trinity --seqType fq --max_memory 20G \
-	--single $DATA/ERR458493.qc.fastq,$DATA/ERR458494.qc.fastq,$DATA/ERR458495.qc.fastq,$DATA/ERR458500.qc.fastq,$DATA/ERR458501.qc.fastq,$DATA/ERR458502.qc.fastq \
+	--single $DATA/SRR1.qc.fastq,$DATA/SRR2.qc.fastq,$DATA/SRR3.qc.fastq,$DATA/SRR1201.qc.fastq,$DATA/SRR1202.qc.fastq,$DATA/SRR1203.qc.fastq \
 	--CPU 12 --output $DIR
 
 press *control + o* --> save    
@@ -575,14 +577,14 @@ nano star_index.slurm
 	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
-	#SBATCH --mem=10G
-	#SBATCH -c 4
+	#SBATCH --mem=20G
+	#SBATCH -c 12
 	#SBATCH --input=none
 	#SBATCH --output=star_index_%j.out
 	#SBATCH --error=star_index_%j.err
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
-	ml load STAR
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
 
 	GENOME_DIR=~/RNAseq/genome
 
@@ -623,23 +625,23 @@ nano star_map.slurm
 	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
 	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
-	#SBATCH -t 0-1
-	#SBATCH --mem=10G
-	#SBATCH -c 8
+	#SBATCH -t 0-4
+	#SBATCH --mem=15G
+	#SBATCH -c 10
 	#SBATCH --input=none
 	#SBATCH --output=star_map_%j.out
 	#SBATCH --error=star_map_%j.err
-	#SBATCH --array 493,494,495,500,501,502
+	#SBATCH --array 1,2,3,1201,1202,1203
 
-	ml use /apps/unit/LuscombeU/.modulefiles/
-	ml load STAR
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
 
 	GENOME_DIR=~/RNAseq/genome
 	DATA=~/RNAseq/data_trimmed
 
 	STAR --runThreadN 4 --genomeDir $GENOME_DIR \
-	--readFilesIn $DATA/ERR458${SLURM_ARRAY_TASK_ID}.qc.fastq \
-	--outFileNamePrefix ERR458${SLURM_ARRAY_TASK_ID}_
+	--readFilesIn $DATA/SRR${SLURM_ARRAY_TASK_ID}.qc.fastq \
+	--outFileNamePrefix SRR${SLURM_ARRAY_TASK_ID}_
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -647,8 +649,8 @@ press *control + x* --> exit
 *example if running paired-end data*
 	
 	STAR --runThreadN 4 --genomeDir $GENOME_DIR \
-	--readFilesIn $DATA/ERR458${SLURM_ARRAY_TASK_ID}_R1.qc.fastq $DATA/ERR458${SLURM_ARRAY_TASK_ID}_R2.qc.fastq \
-	--outFileNamePrefix ERR458${SLURM_ARRAY_TASK_ID}_
+	--readFilesIn $DATA/SRR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq \
+	--outFileNamePrefix SRR${SLURM_ARRAY_TASK_ID}_
 
 to run the slurm file: 
 ```
@@ -661,7 +663,7 @@ You can find a description of the SAM file format here: https://samtools.github.
 
 Lets look at the mapping statistics:
 ```
-less ERR458493_Log.final.out
+less SRR1_Log.final.out
 ```
 press *q* --> exit
 
@@ -704,7 +706,7 @@ nano htseq.slurm
 	#SBATCH -c 8
 	#SBATCH --input=none
 	#SBATCH --error=htseq_%j.err
-	#SBATCH --array 493,494,495,500,501,502
+	#SBATCH --array 1,2,3,1201,1202,1203
 
 	ml use /apps/unit/LuscombeU/.modulefiles/
 	ml load HTSeq
@@ -712,9 +714,9 @@ nano htseq.slurm
 	GENOME_DIR=~/RNAseq/genome
 	STAR_DIR=~/RNAseq/star_results
 
-	htseq-count -f sam -s yes -m intersection-nonempty -o ERR458${SLURM_ARRAY_TASK_ID}.samout \
-	$STAR_DIR/ERR458${SLURM_ARRAY_TASK_ID}_Aligned.out.sam \
-	$GENOME_DIR/Sce.R64-1-1.gm.gtf > ERR458${SLURM_ARRAY_TASK_ID}.counts
+	htseq-count -f sam -s yes -m intersection-nonempty \
+	$STAR_DIR/SRR${SLURM_ARRAY_TASK_ID}_Aligned.out.sam \
+	$GENOME_DIR/Sce.R64-1-1.gm.gtf > SRR${SLURM_ARRAY_TASK_ID}.counts
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -726,39 +728,15 @@ sbatch htseq.slurm
 
 After the job is finished running, you will see a bunch of `*.counts` files:
 ```
-less ERR458493.counts
+less SRR1.counts
 ```
 
 press *q* --> exit 
-
-Now we have to merge htseq-count files into a single table.
-
-download the python script:
-```
-wget https://github.com/aleksandrabliznina/rnaSeqMiniCourse/blob/main/merge_htseq_counts.py
-```
-
-and make in executable:
-```
-chmod +x merge_htseq_counts.py
-```
-
-run the script:
-```
-python merge_htseq_counts.py -i . -o htseq_counts.all.txt
-```
-
-lets look at the file:
-```
-less htseq_counts.all.txt
-```
-
-press *q* --> exit
 
 ---------
 
 Next, move the files for further analysis to your local computer.
 
 ```
-scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/htseq_counts.all.txt .
+scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/SRR*.counts .
 ```
