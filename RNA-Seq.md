@@ -205,6 +205,9 @@ nano multiqc.slurm
 
 	ml use /apps/unit/GradschoolD/.modulefiles
 	ml load RNA-seq/2.0
+	
+	export LC_ALL=C.UTF-8
+    	export LANG=C.UTF-8
 
 	multiqc ERR*
 
@@ -326,6 +329,9 @@ nano quality.slurm
 	module load RNA-seq/2.0
 	module load fastqc
 
+	export LC_ALL=C.UTF-8
+    	export LANG=C.UTF-8
+	
 	fastqc ERR*.qc.fastq.gz -t 6
 	multiqc ERR*
 
