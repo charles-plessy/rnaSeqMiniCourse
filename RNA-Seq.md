@@ -126,11 +126,6 @@ load a particular version:
 ml load fastqc/0.11.9
 ```
 
-check which modules are already loaded:
-```
-ml list
-```
-
 look at the help massege of the tool:
 ```
 fastqc -h
