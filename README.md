@@ -30,4 +30,6 @@ Softwares used:
 * R Studio
 * DESeq2
 
-Find materials from the previous sessions here (taught by Maggi Mars Brisbin): https://github.com/oist/rnaSkillPill
+Find materials from the previous sessions here (taught by Maggi Mars Brisbin): 
+https://github.com/oist/rnaSkillPill
+https://www.youtube.com/playlist?list=PLRN3NhKJXVhkjmZxMxwDBxR0cfoqHpxiw
