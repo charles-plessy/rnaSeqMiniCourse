@@ -18,8 +18,6 @@ RNA-sequencing (RNA-seq) has a wide variety of applications, but no single analy
 
 RNA-seq is a widely used and extremely useful tool in biology, especially when working with non-model organisms that do not have published genomes. RNA-seq refers to using next-generation/high-throughput sequencing to sequence the mRNA in cell or tissue samples in order to determine which genes are being more or less expressed in certain conditions. RNA-seq can, therefore, provide insight into physiological states and molecular pathways associated with phenotypes of interest. In this cours, we will cover RNA-seq data analysis, starting with raw reads and ending with functional analyses.
 
-https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0881-8
-
 **Workflow:**
 
 ![](RNAseq_workflow.png)
