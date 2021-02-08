@@ -2,6 +2,8 @@
 ### OIST - February 8th, 10th, 15th, 17th, 2021
 #### Taught by: Aleksandra (Sasha) Bliznina, PhD Student at Genomics and Regulatory Systems Unit
 
+e-mail: aleksandra.bliznina2@oist.jp
+
 ### Course Resources
 
 Github: https://github.com/aleksandrabliznina/rnaSeqMiniCourse
