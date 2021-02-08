@@ -25,7 +25,7 @@ RNA-seq is a widely used and extremely useful tool in biology, especially when w
 
 #### Experiment and Library Prep Discussion
 
-*experimental design: replicates, controls*
+*experimental design: replicates, controls, library prep, sequencing depth, read length*
 
 Technical replicates: use the same biological sample to repeat the technical or experimental steps.
 
