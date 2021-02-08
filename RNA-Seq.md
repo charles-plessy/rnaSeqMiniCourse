@@ -7,6 +7,7 @@ e-mail: aleksandra.bliznina2@oist.jp
 ### Course Resources
 
 Github: https://github.com/aleksandrabliznina/rnaSeqMiniCourse
+HackMD: https://hackmd.io/@aleksandrabliznina/rnaSeq_minicourse_1/edit
 
 Stickies: Green = "everything is fine", Pink = "I need some help"
 
