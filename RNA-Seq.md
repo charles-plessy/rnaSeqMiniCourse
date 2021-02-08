@@ -140,6 +140,8 @@ nano fastqc.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=fastqc_run
+	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
+	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -151,6 +153,8 @@ nano fastqc.slurm
 	ml load fastqc
 
 	fastqc ERR*.fastq.gz -t 6
+
+Don't forget to change aleksandra.bliznina2@oist.jp to your e-mail in *--mail-user=your-e-mail* !!!
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -194,6 +198,8 @@ nano multiqc.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=multiqc_run
+	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
+	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -266,6 +272,8 @@ nano trimmomatic.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=trimmomatic_run
+	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
+	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -316,6 +324,8 @@ nano quality.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=quality_check_run
+	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
+	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -393,6 +403,8 @@ nano trinity.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=trinity_run
+	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
+	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-3
 	#SBATCH --mem=20G
