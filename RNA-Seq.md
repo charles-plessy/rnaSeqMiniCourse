@@ -12,6 +12,8 @@ Stickies: Green = "everything is fine", Pink = "I need some help"
 
 RNA-seq is a widely used and extremely useful tool in biology, especially when working with non-model organisms that do not have published genomes. RNA-seq refers to using next-generation/high-throughput sequencing to sequence the mRNA in cell or tissue samples in order to determine which genes are being more or less expressed in certain conditions. RNA-seq can, therefore, provide insight into physiological states and molecular pathways associated with phenotypes of interest. In this cours, we will cover RNA-seq data analysis, starting with raw reads and ending with functional analyses.
 
+https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-0881-8
+
 **Workflow:**
 
 ![](RNAseq_workflow.png)
@@ -21,21 +23,25 @@ RNA-seq is a widely used and extremely useful tool in biology, especially when w
 
 *experimental design: replicates, controls*
 
-How many biological replicates are needed in an RNA-seq experiment and which differential expression tool should you use?     
+Technical replicates: use the same biological sample to repeat the technical or experimental steps.
+
+Biological replicates: use different biological samples of the same condition to measure the biological variation between samples.
+
+How many replicates are needed in an RNA-seq experiment and which differential expression tool should you use?     
 (Schurch et al. 2016)       
 https://www.ncbi.nlm.nih.gov/pubmed/27022035
+
+Example: https://academic.oup.com/g3journal/article/7/1/221/6031506?login=true
+
+They used RNA-Seq to to monitor mRNA levels of all genes in response to hypoxia of wild-type yeast, *Saccharomyces cerevisiae* (strain yMH914 with wildtype HAP1). To gain insights into how gene expression changes over time, cells were subjected to 100% nitrogen gas and collected after 0,5,10,30,60,120,180, and 240 minutes. Basically, they had 8 time points with 3 replicates per each point (24 samples in total).
 
 ---------
 
 #### Data Quality Screening
 
-During this course, we will work with yeast data from: https://academic.oup.com/g3journal/article/7/1/221/6031506?login=true
+During this course, we will work with yeast data from: https://www.ebi.ac.uk/ena/browser/view/PRJEB5348
 
-They used RNA-Seq to to monitor mRNA levels of all genes in response to hypoxia of wild-type yeast, *Saccharomyces cerevisiae* (strain yMH914 with wildtype HAP1). To gain insights into how gene expression changes over time, cells were subjected to 100% nitrogen gas and collected after 0,5,10,30,60,120,180, and 240 minutes. Basically, they had 8 time points with 3 replicates per each point (24 samples in total).
-
-Data is available here: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE85595
-
-We won't take all the samples, only two time points: 0 and 120 minutes.
+We won't take all the samples, only three replicates per each condition, WT and *snf2* KO mutant. 
 
 To start with, we need to download the data to the cluster. Deigo.
 
@@ -72,18 +78,18 @@ cd data
 
 Download yeast RNA-seq data from the open science framework ([link to the data])(https://www.ebi.ac.uk/ena/browser/view/PRJNA338913):
 
-	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/007/SRR4031247/SRR4031247.fastq.gz -o SRR1.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/009/SRR5336649/SRR5336649.fastq.gz -o SRR2.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/007/SRR5336657/SRR5336657.fastq.gz -o SRR3.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR403/002/SRR4031252/SRR4031252.fastq.gz -o SRR1201.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/004/SRR5336654/SRR5336654.fastq.gz -o SRR1202.fastq.gz
-    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR533/002/SRR5336662/SRR5336662.fastq.gz -o SRR1203.fastq.gz
+	curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458493/ERR458493.fastq.gz -o ERR458493.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458494/ERR458494.fastq.gz -o ERR458494.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458495/ERR458495.fastq.gz -o ERR458495.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458500/ERR458500.fastq.gz -o ERR458500.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458501/ERR458501.fastq.gz -o ERR458501.fastq.gz
+    curl -L ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR458/ERR458502/ERR458502.fastq.gz -o ERR458502.fastq.gz
 
 These commands download gzipped fastq files and rename them.
 
 look at the zipped file:
 ```
-gzip -cd SRR1.fastq.gz | head -12
+gzip -cd ERR458493.fastq.gz | head -12
 ```
 
 ##### Check sequencing data quality (FastQC/MultiQC)
@@ -104,6 +110,11 @@ ml avail
 load FastQC:
 ```
 ml load fastqc
+```
+
+check the list of modules you loaded:
+```
+ml list
 ```
 
 load a particular version:
@@ -130,8 +141,6 @@ nano fastqc.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=fastqc_run
-	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
-	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -142,7 +151,7 @@ nano fastqc.slurm
 
 	ml load fastqc
 
-	fastqc SRR*.fastq.gz -t 6
+	fastqc ERR*.fastq.gz -t 6
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -157,23 +166,23 @@ check if it is running:
 squeue
 ```
 
-check what files we have in teh current directory:
+check what files we have in the current directory:
 ```
 ls -l
 ```
 
-That will take ~2 minutes. After this job finishes running, there will be `fastqc.zip` and `fastqc.html` files in your data directory.
+After this job finishes running, there will be `fastqc.zip` and `fastqc.html` files in your data directory.
 
 Secure copy one report to your local computer so that we can look at a report:    
 open another terminal tab or window and `cd` to the directory you would like to move the fastqc to on your local computer. Then copy the report to your current working directory:
 
 ```
-scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/data/SRR1_fastqc.html . .
+scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/data/ERR458493_fastqc.html . 
 ```
 
 and to open the report:
 ```
-open SRR1_fastqc.html
+open ERR458493_fastqc.html
 ```
 
 Next, lets bundle up all of our fastqc reports into a single report with **MultiQC**:
@@ -186,8 +195,6 @@ nano multiqc.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=multiqc_run
-	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
-	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -199,7 +206,7 @@ nano multiqc.slurm
 	ml use /apps/unit/GradschoolD/.modulefiles
 	ml load RNA-seq/2.0
 
-	multiqc SRR*
+	multiqc ERR*
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -246,7 +253,7 @@ cd data_trimmed
 
 we will need to get the adapter file:
 ```
-wget https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq3-SE.fa
+wget https://raw.githubusercontent.com/timflutre/trimmomatic/master/adapters/TruSeq2-SE.fa
 ```
 
 make a slurm file to quality trim the data with Trimmomatic: 
@@ -257,22 +264,20 @@ nano trimmomatic.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=trimmomatic_run
-	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
-	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
-	#SBATCH --mem=20G
-	#SBATCH -c 12
+	#SBATCH --mem=10G
+	#SBATCH -c 6
 	#SBATCH --input=none
 	#SBATCH --output=trimmomatic_%j.out
 	#SBATCH --error=trimmomatic_%j.err
-	#SBATCH --array 1,2,3,1201,1202,1203
+	#SBATCH --array 493,493,495,500,501,502
 
 	DIR=/apps/free81/Trimmomatic/0.33/lib
 	DATA=~/RNAseq/data
 
-	java -jar $DIR/trimmomatic-0.33.jar SE $DATA/SRR${SLURM_ARRAY_TASK_ID}.fastq.gz \
-	SRR${SLURM_ARRAY_TASK_ID}.qc.fastq.gz \
+	java -jar $DIR/trimmomatic-0.33.jar SE $DATA/ERR458${SLURM_ARRAY_TASK_ID}.fastq.gz \
+	ERR${SLURM_ARRAY_TASK_ID}.qc.fastq.gz \
     ILLUMINACLIP:TruSeq2-SE.fa:2:30:10 \
     LEADING:3 TRAILING:2 \
     SLIDINGWINDOW:4:10 \
@@ -285,9 +290,9 @@ press *control + x* --> exit
 *example if running paired-end data*
 
 	java -jar $DIR/trimmomatic-0.33.jar PE \
-	$DATA/SRR${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
-	SRR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R1.up.qc.fastq.gz \
-	SRR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq.gz SRR${SLURM_ARRAY_TASK_ID}_R2.up.qc.fastq.gz \
+	$DATA/ERR458${SLURM_ARRAY_TASK_ID}_R1.fastq.gz $DATA/ERR458${SLURM_ARRAY_TASK_ID}_R2.fastq.gz \
+	ERR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq.gz ERR${SLURM_ARRAY_TASK_ID}_R1.up.qc.fastq.gz \
+	ERR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq.gz ERR${SLURM_ARRAY_TASK_ID}_R2.up.qc.fastq.gz \
     ILLUMINACLIP:TruSeq3-SE.fa:2:30:10 \
     LEADING:3 TRAILING:3 \
     SLIDINGWINDOW:4:15 \
@@ -299,7 +304,7 @@ to run the slurm file:
 sbatch trimmomatic.slurm
 ```
 
-As output, we will get new files for each sample, such as `SRR1.qc.fastq.gz`, and in the log files for each sample we can see how many of our sequences were discarded.
+As output, we will get new files for each sample, such as `ERR493.qc.fastq.gz`, and in the log files for each sample we can see how many of our sequences were discarded.
 
 Lets see if our quality reports have changed at all: 
 ```
@@ -309,8 +314,6 @@ nano quality.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=quality_check_run
-	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
-	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
 	#SBATCH --mem=10G
@@ -319,12 +322,12 @@ nano quality.slurm
 	#SBATCH --output=qc_%j.out
 	#SBATCH --error=qc_%j.err
 
-	ml use /apps/unit/GradschoolD/.modulefiles
-	ml load RNA-seq/2.0
-	ml load fastqc
+	module use /apps/unit/GradschoolD/.modulefiles
+	module load RNA-seq/2.0
+	module load fastqc
 
-	fastqc SRR*.qc.fastq.gz -t 6
-	multiqc SRR*
+	fastqc ERR*.qc.fastq.gz -t 6
+	multiqc ERR*
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -385,12 +388,10 @@ nano trinity.slurm
 	#!/bin/bash -l
 
 	#SBATCH --job-name=trinity_run
-	#SBATCH --mail-user=aleksandra.bliznina2@oist.jp
-	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-3
 	#SBATCH --mem=20G
-	#SBATCH -c 12
+	#SBATCH -c 8
 	#SBATCH --input=none
 	#SBATCH --output=trinity_%j.out
 	#SBATCH --error=trinity_%j.err
@@ -403,8 +404,8 @@ nano trinity.slurm
 	DIR=~/RNAseq/trinity_results
 
 	Trinity --seqType fq --max_memory 20G \
-	--single $DATA/SRR1.qc.fastq,$DATA/SRR2.qc.fastq,$DATA/SRR3.qc.fastq,$DATA/SRR1201.qc.fastq,$DATA/SRR1202.qc.fastq,$DATA/SRR1203.qc.fastq \
-	--CPU 12 --output $DIR
+	--single $DATA/ERR493.qc.fastq,$DATA/ERR494.qc.fastq,$DATA/ERR495.qc.fastq,$DATA/ERR500.qc.fastq,$DATA/ERR501.qc.fastq,$DATA/ERR502.qc.fastq \
+	--CPU 8 --output $DIR
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -577,8 +578,8 @@ nano star_index.slurm
 	#SBATCH --mail-type=BEGIN,FAIL,END
 	#SBATCH -p compute
 	#SBATCH -t 0-1
-	#SBATCH --mem=20G
-	#SBATCH -c 12
+	#SBATCH --mem=10G
+	#SBATCH -c 4
 	#SBATCH --input=none
 	#SBATCH --output=star_index_%j.out
 	#SBATCH --error=star_index_%j.err
@@ -592,7 +593,7 @@ nano star_index.slurm
 	--genomeDir $GENOME_DIR \
 	--genomeFastaFiles $GENOME_DIR/Sce.R64-1-1.all.fa \
 	--sjdbGTFfile $GENOME_DIR/Sce.R64-1-1.gm.gtf \
-	--sjdbOverhang 50 \
+	--sjdbOverhang 39 \
 	--genomeSAindexNbases 10
 
 Manual for STAR: https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
@@ -631,7 +632,7 @@ nano star_map.slurm
 	#SBATCH --input=none
 	#SBATCH --output=star_map_%j.out
 	#SBATCH --error=star_map_%j.err
-	#SBATCH --array 1,2,3,1201,1202,1203
+	#SBATCH --array 493,494,495,500,501,502
 
 	module use /apps/unit/GradschoolD/.modulefiles
 	module load RNA-seq/2.0
@@ -640,8 +641,8 @@ nano star_map.slurm
 	DATA=~/RNAseq/data_trimmed
 
 	STAR --runThreadN 4 --genomeDir $GENOME_DIR \
-	--readFilesIn $DATA/SRR${SLURM_ARRAY_TASK_ID}.qc.fastq \
-	--outFileNamePrefix SRR${SLURM_ARRAY_TASK_ID}_
+	--readFilesIn $DATA/ERR${SLURM_ARRAY_TASK_ID}.qc.fastq \
+	--outFileNamePrefix ERR${SLURM_ARRAY_TASK_ID}_
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -649,8 +650,8 @@ press *control + x* --> exit
 *example if running paired-end data*
 	
 	STAR --runThreadN 4 --genomeDir $GENOME_DIR \
-	--readFilesIn $DATA/SRR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq $DATA/SRR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq \
-	--outFileNamePrefix SRR${SLURM_ARRAY_TASK_ID}_
+	--readFilesIn $DATA/ERR${SLURM_ARRAY_TASK_ID}_R1.qc.fastq $DATA/ERR${SLURM_ARRAY_TASK_ID}_R2.qc.fastq \
+	--outFileNamePrefix ERR${SLURM_ARRAY_TASK_ID}_
 
 to run the slurm file: 
 ```
@@ -663,7 +664,7 @@ You can find a description of the SAM file format here: https://samtools.github.
 
 Lets look at the mapping statistics:
 ```
-less SRR1_Log.final.out
+less ERR493_Log.final.out
 ```
 press *q* --> exit
 
@@ -706,7 +707,7 @@ nano htseq.slurm
 	#SBATCH -c 8
 	#SBATCH --input=none
 	#SBATCH --error=htseq_%j.err
-	#SBATCH --array 1,2,3,1201,1202,1203
+	#SBATCH --array 493,494,495,500,501,502
 
 	module use /apps/unit/GradschoolD/.modulefiles
 	module load RNA-seq/2.0
@@ -715,8 +716,8 @@ nano htseq.slurm
 	STAR_DIR=~/RNAseq/star_results
 
 	htseq-count -f sam -s yes -m intersection-nonempty \
-	$STAR_DIR/SRR${SLURM_ARRAY_TASK_ID}_Aligned.out.sam \
-	$GENOME_DIR/Sce.R64-1-1.gm.gtf > SRR${SLURM_ARRAY_TASK_ID}.counts
+	$STAR_DIR/ERR${SLURM_ARRAY_TASK_ID}_Aligned.out.sam \
+	$GENOME_DIR/Sce.R64-1-1.gm.gtf > ERR${SLURM_ARRAY_TASK_ID}.counts
 
 press *control + o* --> save    
 press *control + x* --> exit
@@ -728,7 +729,7 @@ sbatch htseq.slurm
 
 After the job is finished running, you will see a bunch of `*.counts` files:
 ```
-less SRR1.counts
+less ERR493.counts
 ```
 
 press *q* --> exit 
@@ -738,5 +739,5 @@ press *q* --> exit
 Next, move the files for further analysis to your local computer.
 
 ```
-scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/SRR*.counts .
+scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/ERR*.counts .
 ```
