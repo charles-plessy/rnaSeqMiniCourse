@@ -274,7 +274,7 @@ nano trimmomatic.slurm
 	#SBATCH --input=none
 	#SBATCH --output=trimmomatic_%j.out
 	#SBATCH --error=trimmomatic_%j.err
-	#SBATCH --array 493,493,495,500,501,502
+	#SBATCH --array 493,494,495,500,501,502
 
 	DIR=/apps/free81/Trimmomatic/0.33/lib
 	DATA=~/RNAseq/data
