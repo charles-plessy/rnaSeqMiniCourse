@@ -32,4 +32,5 @@ Softwares used:
 
 Find materials from the previous sessions here (taught by Maggi Mars Brisbin): 
 https://github.com/oist/rnaSkillPill
+
 https://www.youtube.com/playlist?list=PLRN3NhKJXVhkjmZxMxwDBxR0cfoqHpxiw
