@@ -769,3 +769,8 @@ Check the files:
 ```
 ls -l htseq_counts
 ```
+
+Get a file with sample description:
+```
+wget https://github.com/aleksandrabliznina/rnaSeqMiniCourse/blob/main/samples.scv
+```
