@@ -755,8 +755,17 @@ press *q* --> exit
 
 ---------
 
-Next, move the files for further analysis to your local computer.
-
+Create a new directory on your local computer.
 ```
-scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/ERR*.counts .
+mkdir htseq_counts
+```
+
+Next, move the htseq-count output files to your local computer.
+```
+scp aleksandrabliznina@deigo.oist.jp:/home/a/aleksandrabliznina/RNAseq/htseq_results/ERR*.counts htseq_counts/
+```
+
+Check the files:
+```
+ls -l htseq_counts
 ```
