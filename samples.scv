@@ -1,0 +1,7 @@
+﻿sample,quant_file,condition
+ERR458493,htseq_counts/ERR493.counts,wt
+ERR458494,htseq_counts/ERR494.counts,wt
+ERR458495,htseq_counts/ERR495.counts,wt
+ERR458500,htseq_counts/ERR500.counts,snf2
+ERR458501,htseq_counts/ERR501.counts,snf2
+ERR458502,htseq_counts/ERR502.counts,snf2
