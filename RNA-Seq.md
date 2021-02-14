@@ -772,5 +772,9 @@ ls -l htseq_counts
 
 Get a file with sample description:
 ```
-wget https://github.com/aleksandrabliznina/rnaSeqMiniCourse/blob/main/samples.scv
+curl -L https://github.com/aleksandrabliznina/rnaSeqMiniCourse/blob/main/samples.scv -o samples.scv 
+```
+Get R code:
+```
+curl -L https://github.com/aleksandrabliznina/rnaSeqMiniCourse/blob/main/R_RNAseq.Rmd -o R_RNAseq.Rmd
 ```
