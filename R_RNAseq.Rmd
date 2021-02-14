@@ -1,0 +1,528 @@
+---
+title: "R_RNAseq"
+output:
+  html_document: 
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 5
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '5'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, fig.path='figures/', fig.width=8, fig.height=5 )
+```
+
+by adding `fig.path = 'figures/'` we put all of the figures created when we knit this document into a directory called `figures`
+
+Install packages:
+```{r}
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager") # calls the package from the source
+
+#BiocManager::install("DESeq2")
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+#install.packages("treemap")
+#install.packages("devtools")
+#BiocManager::install("clusterProfiler")
+#install.packages("RColorBrewer")
+#install.packages("pheatmap")
+#devtools::install_github("karthik/wesanderson")
+#BiocManager::install("topGO")
+#BiocManager::install("org.Sc.sgd.db")
+#BiocManager::install("Rgraphviz")
+#BiocManager::install("biomaRt")
+```
+
+Load Libraries: 
+```{r, warning = FALSE, message = FALSE}
+library(DESeq2)
+library(tidyverse)
+library(ggplot2)
+library(treemap)
+library(devtools)
+library(clusterProfiler)
+library(RColorBrewer)
+library(pheatmap)
+library(topGO)
+library(org.Sc.sgd.db)
+library(Rgraphviz)
+library(scales)
+```
+
+# Differential Expression Testing
+
+We will analyse RNA-Seq data with DESeq2 package: http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
+
+The package DESeq2 provides methods to test for differential expression by use of negative binomial generalized linear models; the estimates of dispersion and logarithmic fold changes incorporate data-driven prior distributions.
+
+Import sample metadata:
+```{r}
+# read the sample.scv file
+samples <- read_csv("samples.scv")
+# look at the first 6 lines
+samples
+```
+Read directory:
+```{r}
+directory <- "htseq_counts"
+directory
+```
+
+Load htseq counts:
+```{r}
+dataFiles <- grep("counts",list.files(directory),value=TRUE)
+dataTable <- data.frame(sampleName = samples$sample,
+                        fileName = dataFiles,
+                        condition = samples$condition,
+                        sample = samples$sample,
+                        stringsAsFactors = default.stringsAsFactors())
+dataTable$condition <- factor(dataTable$condition)
+dataTable
+```
+
+Make a DESeq2 object:
+```{r}
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = dataTable,
+                                       directory = directory,
+                                       design= ~ condition)
+ddsHTSeq
+```
+
+```{r}
+head(assay(ddsHTSeq), 6)
+```
+
+```{r}
+ddsHTSeq$condition
+```
+
+Relevel to make wild-type the reference to which expression in treatment samples is compared to:
+```{r}
+ddsHTSeq$condition <- relevel(ddsHTSeq$condition, ref = "wt")
+ddsHTSeq$condition
+```
+
+Run DESeq2: 
+```{r, cache = TRUE}
+ddsHTSeq <- DESeq(ddsHTSeq)
+```
+Check out results:
+```{r}
+res <- results(ddsHTSeq, name=resultsNames(ddsHTSeq)[2])
+head(res)
+```
+
+```{r}
+mcols(res)$description
+```
+
+What do these columns mean?
+baseMean - mean of normalized counts for all samples
+log2FoldChange - log2 fold change (MLE): condition snf2 vs wt
+lfcSE - standard error: condition snf2 vs wt
+stat - Wald statistic: condition snf2 vs wt
+pvalue - Wald test p-value: condition snf2 vs wt
+padj - BH adjusted p-values
+
+Summarize results:
+```{r}
+# default significance cut-off is 0.1, changing alpha to 0.05 changes the significance cut-off
+summary(res, alpha = 0.05)
+```
+
+**Why p-adj?** Multiple testing problems come up when doing multiple statistical tests simultaneously. Here, we are performing 7,126 individual statistical tests. We first need to think about the p-value definition: the p-value is the probability of attaining the observed result by chance. So if we use a p-value cut off of 0.05, 5% of the time our results will represent chance outcomes rather than real effects. This is fine in one test. For that one test we are 95% confident that are results are real. But if we do 7,126 tests, ~356 genes could be *significantly* differentially expressed, just by chance -- there is a false positive problem.
+
+FDR (False Discovery Rate) adjusted p-values controls for the expected rate of false positives. The p-adj is almost always higher than the p-value. Controlling for multiple testing has the downside of increasing the possibility of false negatives. 
+
+Some researchers also set a cut-off for minimum expression and minimum log fold-changes.
+
+If you want to use a log fold-change cut off:
+```{r}
+res_lfcut <- results(ddsHTSeq, lfcThreshold = 1, altHypothesis = "greaterAbs")
+summary(res_lfcut, alpha = 0.05)
+```
+
+We can annotate significantly DE genes and save the list to a file:
+```{r}
+#get dataframe of significantly differentially expressed genes
+allGenes <- as.data.frame(res)
+sigDEgenes <- subset(allGenes, padj < 0.05)
+head(sigDEgenes)
+
+# annotate them using yeast database (org.Sc.sgd.db)
+library("AnnotationDbi")
+columns(org.Sc.sgd.db)
+
+annotSigDEgenes <- sigDEgenes
+annotSigDEgenes$ENSEMBL <- row.names(annotSigDEgenes) # add ENSEMBL gene ids
+head(annotSigDEgenes)
+
+# map ENSEMBL ids to GENENAMES
+annotSigDEgenes$GENENAME <- mapIds(org.Sc.sgd.db, keys=annotSigDEgenes$ENSEMBL,
+                                   column="GENENAME", keytype="ENSEMBL",
+                                   multiVals="first")
+head(annotSigDEgenes)
+
+# map ENSEMBL ids to gene DESCRIPTION
+annotSigDEgenes$DESCR <- mapIds(org.Sc.sgd.db, keys=annotSigDEgenes$ENSEMBL,
+                                column="DESCRIPTION", keytype="ENSEMBL",
+                                multiVals="first")
+head(annotSigDEgenes)
+
+# save the DE genes into a file
+write.csv(as.data.frame(annotSigDEgenes), "annotSigDEgenes.csv")
+
+# plot the range of the DE gene FC
+ranks <- as.numeric(annotSigDEgenes$log2FoldChange)
+names(ranks) <- annotSigDEgenes$ENSEMBL
+barplot(sort(ranks, decreasing = T))
+```
+
+# Visualizing RNA-seq results 
+
+## Normalization
+
+**Count Data Transformations:** 
+
+In order to test for differential expression, we operate on raw counts. However for other downstream analyses – e.g. for visualization or clustering – it might be useful to work with transformed versions of the count data.
+
+**rlog**: "transforms the count data to the log2 scale in a way which minimizes differences between samples for rows with small counts, and which normalizes with respect to library size. The rlog transformation produces a similar variance stabilizing effect as varianceStabilizingTransformation, though rlog is more robust in the case when the size factors vary widely. The transformation is useful when checking for outliers or as input for machine learning techniques such as clustering or linear discriminant analysis." -- from function documentation 
+
+This is computationally very time intensive.
+
+```{r, cache=TRUE}
+rld <- rlog(ddsHTSeq, blind=TRUE)
+head(assay(rld), 6)
+```
+
+**Variance stabilizing transformation (VST):**
+"This function calculates a variance stabilizing transformation (VST) from the fitted dispersion-mean relation(s) and then transforms the count data (normalized by division by the size factors or normalization factors), yielding a matrix of values which are now approximately homoskedastic (having constant variance along the range of mean values). The transformation also normalizes with respect to library size. The rlog is less sensitive to size factors, which can be an issue when size factors vary widely. These transformations are useful when checking for outliers or as input for machine learning techniques such as clustering or linear discriminant analysis."" – from function documentation.
+
+```{r, cache = TRUE}
+vsd <- vst(ddsHTSeq, blind = TRUE)
+head(assay(vsd), 6)
+```
+
+## Ordination
+
+### PCA (principal component analysis) plots
+
+rlog PCA: 
+```{r pca_rld}
+data1 <- plotPCA(rld, returnData=TRUE)
+data1$group<-gsub(" : ","_",as.character(data1$group))
+percentVar1 <- round(100 * attr(data1, "percentVar"))
+
+PCA<-ggplot(data1, aes(PC1, PC2, color = condition))+ theme_bw()+
+  geom_point(size=9, alpha = 0.8) + scale_colour_manual(values = c("#44aabb","#bbbbbb"))+
+  xlab(paste0("PC1: ",percentVar1[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar1[2],"% variance")) +
+  theme(text = element_text(size=20)) + ggtitle("rlog PCA")
+PCA
+ggsave("figures/vsd_PCA.png", device="png") # to save the plot
+```
+
+variance stabilized PCA:
+```{r pca_vst}
+data1 <- plotPCA(vsd, returnData=TRUE)
+data1$group<-gsub(" : ","_",as.character(data1$group))
+percentVar1 <- round(100 * attr(data1, "percentVar"))
+
+PCA<-ggplot(data1, aes(PC1, PC2, color = condition))+ theme_bw()+
+  geom_point(size=9, alpha = 0.8) + scale_colour_manual(values = c("#44aabb","#bbbbbb"))+
+  xlab(paste0("PC1: ",percentVar1[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar1[2],"% variance")) +
+  theme(text = element_text(size=20)) + ggtitle("vst PCA")
+PCA
+ggsave("figures/vsd_PCA.png", device="png") # to save the plot
+```
+
+### Heatmaps
+
+The heatmap may be combined with clustering methods which group genes and/or samples together based on the similarity of their gene expression pattern. This can be useful for identifying genes that are commonly regulated, or biological signatures associated with a particular condition (e.g a disease or an environmental condition) 
+
+rlog HeatMap:
+```{r heatmap_rld}
+df <- as.data.frame(colData(rld)[,c("condition", "sample")])
+
+mat_colors1<-list(sample = brewer.pal(12, "Paired")[0:6])
+names(mat_colors1$sample)<- df$sample
+
+mat_colors <- list(condition = brewer.pal(12, "Paired")[7:8])
+names(mat_colors$condition) <- c("wt", "snf2")
+
+genes <- order(res$padj)[1:1000]
+
+pheatmap(assay(rld)[genes, ], cluster_rows=TRUE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df, 
+         annotation_colors = c(mat_colors1,mat_colors), fontsize = 12)
+```
+
+In heat maps the data is displayed in a grid where each row represents a gene and each column represents a sample. The colour and intensity of the boxes is used to represent changes (not absolute values) of gene expression.
+
+Plotting the expression level, so your counts after it was normalized.
+
+variance stabilized HeatMap: 
+```{r heatmap_vst}
+df <- as.data.frame(colData(vsd)[,c("condition", "sample")])
+
+pheatmap(assay(vsd)[genes, ], cluster_rows=TRUE, show_rownames=FALSE, show_colnames = FALSE,
+         cluster_cols=FALSE, annotation_col=df, 
+         annotation_colors = c(mat_colors1, mat_colors), fontsize = 12)
+```
+
+Another option for heat maps: 
+plot the difference from the mean normalized count across samples and plot the difference from the mean.
+(and optionally change default colors)
+
+With Rlog transformed data:
+```{r heatmap_rld_meandiff}
+library(wesanderson)
+pal <- wes_palette(name = "Zissou1", n=2000 , type= "continuous")
+
+mat_colors1<-list(sample = wes_palette("IsleofDogs1", 6))
+names(mat_colors1$sample)<- df$sample
+
+mat_colors <- list(condition = wes_palette("Cavalcanti1")[4:5])
+names(mat_colors$condition) <- c("wt", "snf2")
+
+mat <- assay(rld)[genes, ]
+mat <- mat - rowMeans(mat)
+
+df <- as.data.frame(colData(rld)[,c("condition", "sample")])
+
+pheatmap(mat,  cluster_rows=TRUE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col=df, 
+         annotation_colors = c(mat_colors1, mat_colors), fontsize = 12, color = pal)
+```
+
+Same but with variance stabilizing function:
+```{r heatmap_vst_meandiff}
+mat <- assay(vsd)[genes, ]
+mat <- mat - rowMeans(mat)
+
+df <- as.data.frame(colData(vsd)[,c("condition", "sample")])
+
+pheatmap(mat,  cluster_rows=TRUE, show_rownames=FALSE, show_colnames = FALSE,
+         cluster_cols=FALSE, annotation_col=df, 
+         annotation_colors = c(mat_colors1, mat_colors), fontsize = 12, color = pal)
+```
+
+Heatmap of sample-to-sample distances: 
+
+A heatmap of this distance matrix gives us an overview over similarities and dissimilarities between samples.
+```{r heatmap_sampledistance}
+sampleDists <- dist(t(assay(vsd)))
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(vsd$condition, vsd$type, sep="-")
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
+```
+
+## MA plot
+
+2-dimensional (2D) scatter plot to visualize gene expression datasets
+
+Visualize and identify gene expression changes from two different conditions (eg. normal vs. treated) in terms of log fold change (M) on Y-axis and log of the mean of normalized expression counts of normal and treated samples (A) on X-axis.
+
+Genes with similar expression values in both normal and treated samples will cluster around M=0 value i.e genes expressed with no significant differences in between treatments.
+
+Points away from M=0 line indicate genes with significant expression, For example, a gene is up-regulated and down-regulated if the point is above and below M=0 line respectively.
+
+```{r}
+DESeq2::plotMA(res, alpha = 0.05, ylim = c(-10,10)) #default alpha is 0.1
+```
+
+# Gene Set Enrichment Testing 
+If you remember, we had 442 significantly upregulated genes and 934 significantly down regulated genes in this data set (this is pretty typical). That is a lot to try to make sense of. If you know you are interested in a specific gene or a specific pathway, you can look for that in your data, but if you are trying to figure out what is generally different between treatments, it helps to categaorize and summarize genes by what they do. Two common ways to do this are GO terms and KEGG pathways.
+
+```{r}
+summary(res, alpha = 0.05)
+```
+
+## Annotations
+Get a list of DE genes:
+```{r}
+# dataframe of significantly differentially expressed genes
+head(sigDEgenes)
+
+# add geneid column to the dataframe
+sigDEgenes$geneid <- row.names(sigDEgenes)
+head(sigDEgenes)
+```
+
+```{r}
+# get a list of up-regulated genes and save in a file
+upregged <- subset(sigDEgenes, log2FoldChange > 0)
+head(upregged)
+
+# and save in a file
+write.csv(upregged, "up-regulatedDEgenes.csv")
+```
+
+```{r}
+# get a list of down-regulated genes
+downregged <- subset(sigDEgenes, log2FoldChange < 0)
+head(downregged)
+
+# and save in a file
+write.csv(downregged, "down-regulatedDEgenes.csv")
+```
+
+## Gene Ontology (GO) Enrichment analysis
+
+Gene ontology (http://www.geneontology.org/) provides a controlled vocabulary for describing biological processes (BP ontology), molecular functions (MF ontology) and cellular components (CC ontology)
+
+The GO ontologies themselves are organism-independent; terms are associated with genes for a specific organism through direct experimentation or through sequence homology with another organism and its GO annotation.
+
+Terms are related to other terms through parent-child relationships in a directed acylic graph.
+
+Enrichment analysis provides one way of drawing conclusions about a set of differential expression results.
+
+Create topGOData object for down-regulated genes:
+```{r}
+geneList <- as.numeric(downregged$pvalue)
+names(geneList) <- downregged$geneid
+# head(geneList)
+
+selection <- function(allScore){return(allScore < 0.05)}
+allGO2genes <- annFUN.org(whichOnto="BP",
+                          feasibleGenes=NULL, 
+                          mapping="org.Sc.sgd.db", ID="ENSEMBL")
+
+GOdata <- new("topGOdata",
+              description = "GO analysis for down-regulated genes; WT vs. snf",
+              ontology = "BP",
+              allGenes = geneList,
+              annot=annFUN.GO2genes,
+              GO2genes=allGO2genes,
+              geneSel = selection,
+              nodeSize = 10)
+GOdata
+```
+
+First, we perform a classical enrichment analysis by testing the over-representation of GO terms within the group of differentially expressed genes. 
+```{r}
+resultFisher <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
+resultFisher
+```
+
+We will test the enrichment using the Kolmogorov-Smirnov test. We will use the both the classic and the elim method.
+```{r}
+resultKS <- runTest(GOdata, algorithm = "classic", statistic = "ks")
+resultKS
+```
+
+```{r}
+resultKS.elim <- runTest(GOdata, algorithm = "elim", statistic = "ks")
+resultKS.elim
+```
+
+Analyse results:
+```{r}
+allRes <- GenTable(GOdata, classicFisher = resultFisher, 
+                   classicKS = resultKS, elimKS = resultKS.elim, 
+                   orderBy = "elimKS", ranksOf = "classicFisher", topNodes = 100)
+head(allRes)
+
+# save results in a file
+write.csv(allRes, "EnrichedGOterms.csv")
+```
+
+Plot the results:
+```{r}
+pValue.classic <- score(resultKS)
+pValue.elim <- score(resultKS.elim)[names(pValue.classic)]
+gstat <- termStat(GOdata, names(pValue.classic))
+gSize <- gstat$Annotated / max(gstat$Annotated) * 4
+
+#Defined colMap, ref. https://github.com/Bioconductor-mirror/topGO/blob/master/vignettes/topGO.Rnw
+colMap <- function(x) {
+  .col <- rep(rev(heat.colors(length(unique(x)))), time = table(x))
+  return(.col[match(1:length(x), order(x))])
+}
+
+gCol <- colMap(gstat$Significant)
+plot(pValue.classic, pValue.elim, xlab = "p-value classic", ylab = "p-value elim",
+     pch = 19, cex = gSize, col = gCol)
+```
+
+Fugure: P-values scatter plot for the classic (x axis) and elim (y axis) methods. The size of the dot is proportional with the number of annotated genes for the respective GO term and its coloring represents the number of significantly differentially expressed genes, with the dark red points having more genes then the yellow ones.
+
+Another insightful way of looking at the results of the analysis is to investigate how the significant GO terms are distributed over the GO graph.
+
+The structure of GO can be described in terms of a graph, where each GO term is a node, and the relationships between the terms are edges between the nodes. GO is loosely hierarchical, with ‘child’ terms being more specialized than their ‘parent’ terms, but unlike a strict hierarchy, a term may have more than one parent term.
+
+```{r}
+showSigOfNodes(GOdata, score(resultKS.elim), firstSigNodes = 3, useInfo = 'all')
+```
+
+Figure: The subgraph induced by the top 3 GO terms identified by the elim algorithm for scoring GO terms for enrichment. Rectangles indicate the 3 most significant terms. Rectangle color represents the relative significance, ranging from dark red (most significant) to bright yellow (least significant). For each node, some basic information is displayed. The first two lines show the GO identifier and a trimmed GO name. In the third line the raw p-value is shown. The forth line is showing the number of significant genes and the total number of genes annotated to the respective GO term.
+
+Create a subtable for resultKS.elim only
+```{r}
+goEnrichment <- GenTable(GOdata, elimKS = resultKS.elim, orderBy = "elimKS", topNodes=100)
+goEnrichment$elimKS <- as.numeric(goEnrichment$elimKS)
+goEnrichment <- goEnrichment[goEnrichment$elimKS<0.01,] # filter terms for elimKS p<0.01
+goEnrichment <- goEnrichment[,c("GO.ID","Term","elimKS")]
+#goEnrichment$Term <- gsub(" [a-z]*\\.\\.\\.$", "", goEnrichment$Term)
+#goEnrichment$Term <- gsub("\\.\\.\\.$", "", goEnrichment$Term)
+goEnrichment$Term <- paste(goEnrichment$GO.ID, goEnrichment$Term, sep=", ")
+goEnrichment$Term <- factor(goEnrichment$Term, levels=rev(goEnrichment$Term))
+goEnrichment
+```
+
+Plot:
+```{r}
+require(ggplot2)
+ggplot(goEnrichment, aes(x=Term, y=-log10(elimKS))) +
+    stat_summary(geom = "bar", fun = mean, position = "dodge") +
+    xlab("Biological process") +
+    ylab("Encrichment (-log10(p-value))") +
+    ggtitle("GO terms enriched in down-regulated genes") +
+    scale_y_continuous(breaks = round(seq(0, max(-log10(goEnrichment$elimKS)), by = 2), 1)) +
+    theme_bw(base_size=24) +
+    theme(
+        legend.position='none',
+        legend.background=element_rect(),
+        plot.title=element_text(angle=0, size=24, vjust=1, face="bold"),
+        axis.text.x=element_text(angle=0, size=18, hjust=1.10),
+        axis.text.y=element_text(angle=0, size=18, vjust=0.5),
+        axis.title=element_text(size=24),
+        legend.key=element_blank(),     #removes the border
+        legend.key.size=unit(1, "cm"),      #Sets overall area/size of the legend
+        legend.text=element_text(size=18),  #Text size
+        title=element_text(size=18)) +
+    guides(colour=guide_legend(override.aes=list(size=2.5))) +
+    coord_flip()
+ggsave("figures/down_reg_enrGOterms.png", device="png")
+```
+
+## GUI Options
+
+David: https://david.ncifcrf.gov/gene2gene.jsp
+
+GOrilla:
+http://cbl-gorilla.cs.technion.ac.il/
+
+Special for organisms:
+https://www.yeastgenome.org/goTermFinder
+        
+## KEGG
+KEGG annotation and pathway enrichment is another type of functional enrichment that can be more useful than GO terms. 
+https://www.kegg.jp/
+
+some useful KEGG tools:
+          
+- function `kegga` in edgeR package (bioconductor)        
+- pathview package (bioconductor)         
+- iPath3, interactive: https://pathways.embl.de/   
