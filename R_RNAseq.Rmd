@@ -20,22 +20,22 @@ by adding `fig.path = 'figures/'` we put all of the figures created when we knit
 
 Install packages:
 ```{r}
-#if (!requireNamespace("BiocManager", quietly = TRUE))
-#    install.packages("BiocManager") # calls the package from the source
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager") # calls the package from the source
 
-#BiocManager::install("DESeq2")
-#install.packages("tidyverse")
-#install.packages("ggplot2")
-#install.packages("treemap")
-#install.packages("devtools")
-#BiocManager::install("clusterProfiler")
-#install.packages("RColorBrewer")
-#install.packages("pheatmap")
-#devtools::install_github("karthik/wesanderson")
-#BiocManager::install("topGO")
-#BiocManager::install("org.Sc.sgd.db")
-#BiocManager::install("Rgraphviz")
-#BiocManager::install("biomaRt")
+BiocManager::install("DESeq2")
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("treemap")
+install.packages("devtools")
+BiocManager::install("clusterProfiler")
+install.packages("RColorBrewer")
+install.packages("pheatmap")
+devtools::install_github("karthik/wesanderson")
+BiocManager::install("topGO")
+BiocManager::install("org.Sc.sgd.db")
+BiocManager::install("Rgraphviz")
+BiocManager::install("biomaRt")
 ```
 
 Load Libraries: 
