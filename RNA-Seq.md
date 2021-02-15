@@ -445,7 +445,7 @@ https://www.molecularecologist.com/2017/05/n50-for-transcriptome-assemblies/
 
 What can you do with a transcriptome:
 
-1. Check the quality of the transcriptome: with [rnaQAST](https://cab.spbu.ru/software/rnaquast/) and [BUSCO](https://busco.ezlab.org/);
+1. Check the quality of the transcriptome: with [rnaQAST](https://cab.spbu.ru/software/rnaquast/), [Transrate](https://hibberdlab.com/transrate/) and [BUSCO](https://busco.ezlab.org/);
 2. Map transcriptome to the genome: with [BLAT](https://genome.ucsc.edu/goldenPath/help/blatSpec.html);
 2. Annotate the transcriptome: with [dammit](https://github.com/dib-lab/dammit) and [Trinotate](https://github.com/Trinotate/Trinotate.github.io/wiki);
 3. Map trimmed RNA-Seq reads to the transcriptome with [salmon](https://salmon.readthedocs.io/en/latest/salmon.html) and do DE analysis.
