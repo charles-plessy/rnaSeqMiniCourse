@@ -785,3 +785,8 @@ Get R code:
 ```
 curl -L https://raw.githubusercontent.com/aleksandrabliznina/rnaSeqMiniCourse/main/R_RNAseq.Rmd -o R_RNAseq.Rmd
 ```
+
+Create a new directory for figures.
+```
+mkdir figures
+```
