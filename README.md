@@ -14,7 +14,8 @@ Sessions:
 * Feb 17: Differential gene expression analysis using Nextflow
 
 Main lesson materials are in:
-* RNA-Seq.md (work on cluster)
+* [RNA-Seq.md](RNA-Seq.md) (work on cluster)
+* [Nextflow.md](Nextflow.md)
 
 The tutorials are specific to working on the OIST HPC, Deigo, but could be adapted for use on other systems.
 
